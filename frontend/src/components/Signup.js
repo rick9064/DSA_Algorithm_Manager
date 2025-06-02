@@ -143,7 +143,7 @@ function Signup() {
     await sendEmailVerification(user);
 
     // Send data to your backend for MongoDB storage
-    await fetch('http://localhost:5000/firebase-signup', {
+    await fetch('https://dsa-algorithm-manager.onrender.com/firebase-signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
