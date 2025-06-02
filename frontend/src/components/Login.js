@@ -54,7 +54,7 @@ function Login() {
         // Replace the userinfo fetch block in your try block with this updated version:
 
     try {
-        const res = await fetch(`http://localhost:5000/userinfo?email=${encodeURIComponent(user.email)}`);
+        const res = await fetch(`https://dsa-algorithm-manager.onrender.com/userinfo?email=${encodeURIComponent(user.email)}`);
 
         if (!res.ok) {
             throw new Error(`Backend responded with status ${res.status}`);
