@@ -26,7 +26,7 @@ const BinaryTree = () => {
         const inputValues = values.split(',').map((v) => v.trim()).filter(v => v);
         
         try {
-            const response = await fetch('http://127.0.0.1:5000/create-tree', {
+            const response = await fetch('https://dsa-algorithm-manager.onrender.com/create-tree', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
