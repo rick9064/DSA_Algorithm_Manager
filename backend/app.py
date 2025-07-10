@@ -27,21 +27,10 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 logging.basicConfig(level=logging.DEBUG)
 
 # Firebase initialization
-firebase_config_json = os.getenv('FIREBASE_CONFIG')
-if not firebase_config_json:
-    raise Exception("FIREBASE_CONFIG environment variable is missing")
-
-
-
-
-print("FIREBASE_CONFIG:", os.getenv("FIREBASE_CONFIG")[:200])
-
-firebase_config = json.loads(firebase_config_json)
-firebase_config['private_key'] = firebase_config['private_key'].replace('\\n', '\n')
-
 if not firebase_admin._apps:
-    cred = credentials.Certificate(firebase_config)
+    cred = credentials.Certificate("serviceAccount.json")
     firebase_admin.initialize_app(cred)
+
 
 # MongoDB connection
 try:
