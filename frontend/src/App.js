@@ -29,8 +29,8 @@ function AppLayout() {
 
       <Routes>
         {/* Public Routes */}
-        <Route path="/login" element={currentUser ? <Navigate to="/home" replace /> : <Login />} />
-        <Route path="/signup" element={currentUser ? <Navigate to="/home" replace /> : <Signup />} />
+        <Route path="/login" element={currentUser && currentUser.emailVerified ? <Navigate to="/home" replace /> : <Login />} />
+        <Route path="/signup" element={currentUser && currentUser.emailVerified ? <Navigate to="/home" replace /> : <Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Protected Routes */}
