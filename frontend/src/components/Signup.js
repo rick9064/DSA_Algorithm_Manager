@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, User, Mail, Lock, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { auth } from './firebase';
-import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification, signInWithEmailAndPassword } from 'firebase/auth';
 
 
 
@@ -20,6 +20,8 @@ function Signup() {
   const [isLoading, setIsLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [verifyError, setVerifyError] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
 
   // Password strength calculator
     const calculatePasswordStrength = (password) => {
@@ -142,6 +144,9 @@ function Signup() {
     // Send email verification
     await sendEmailVerification(user);
 
+    // 🔒 Immediately sign out the user
+    await auth.signOut();
+
     // Send data to your backend for MongoDB storage
     await fetch('https://dsa-algorithm-manager.onrender.com/firebase-signup', {
       method: 'POST',
@@ -172,6 +177,26 @@ function Signup() {
 
 
   if (isSuccess) {
+    const handleCheckVerification = async () => {
+      setIsVerifying(true);
+      setVerifyError("");
+      try {
+        // Use signInWithEmailAndPassword to check verification
+        const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
+        await userCredential.user.reload();
+        if (userCredential.user.emailVerified) {
+          await auth.signOut();
+          window.location.href = '/login';
+        } else {
+          setVerifyError("Email not verified yet. Please check your inbox and click the verification link.");
+          await auth.signOut();
+        }
+      } catch (err) {
+        setVerifyError("Could not verify email. Please try again or log in after verifying.");
+      } finally {
+        setIsVerifying(false);
+      }
+    };
     return (
       <div className="fixed inset-0 w-full h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4 overflow-hidden">
         {/* Animated Background Elements for success screen */}
@@ -189,12 +214,21 @@ function Signup() {
           <p className="text-gray-200 mb-6 text-lg">
             Verification email sent successfully. Please check your email to verify your account before logging in.
           </p>
-          <div className="flex items-center justify-center gap-2 text-purple-300">
-            <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-            <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse animation-delay-200"></div>
-            <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse animation-delay-400"></div>
-            <span className="ml-2 text-lg">Redirecting to login page...</span>
-          </div>
+          <button
+            className="mt-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 mx-auto disabled:opacity-60"
+            onClick={handleCheckVerification}
+            disabled={isVerifying}
+          >
+            {isVerifying ? <><Loader className="w-5 h-5 animate-spin" /> Checking...</> : "I have verified my email"}
+          </button>
+          {verifyError && (
+            <div className="mt-4 bg-red-500/10 border border-red-500/30 rounded-lg p-4 animate-fade-in">
+              <p className="text-red-400 text-sm flex items-center gap-2">
+                <AlertCircle className="w-5 h-5" />
+                {verifyError}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );
