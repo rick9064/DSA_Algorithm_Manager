@@ -37,7 +37,7 @@ const Profile = () => {
     const fetchUserInfo = async () => {
       if (!email) return;
       try {
-        const res = await axios.get(`https://dsa-algorithm-manager.onrender.com/userinfo?email=${email}`);
+        const res = await axios.get(`http://localhost:5000/userinfo?email=${email}`);
         const data = res.data;
         setFirstName(data.first_name);
         setProfilePhoto(data.profile_photo);
@@ -45,6 +45,7 @@ const Profile = () => {
         setTempPhoto(data.profile_photo);
         localStorage.setItem('first_name', data.first_name);
         localStorage.setItem('profile_photo', data.profile_photo);
+        window.dispatchEvent(new Event('profile_photo_updated'));
       } catch (err) {
         console.error('Failed to fetch user info:', err);
       }
@@ -65,6 +66,8 @@ const Profile = () => {
       // Save photo if changed
       if (tempPhoto !== profilePhoto) {
         setProfilePhoto(tempPhoto);
+        localStorage.setItem('profile_photo', tempPhoto);
+        window.dispatchEvent(new Event('profile_photo_updated'));
       }
 
       setIsEditing(false);
@@ -89,7 +92,7 @@ const Profile = () => {
     formData.append('email', email);
 
     try {
-      const res = await axios.post('https://dsa-algorithm-manager.onrender.com/upload-profile-photo', formData, {
+      const res = await axios.post('http://localhost:5000/upload-profile-photo', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       if (res.data.status === 'success') {
