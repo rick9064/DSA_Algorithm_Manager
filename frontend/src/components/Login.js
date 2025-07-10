@@ -11,6 +11,9 @@ function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [pendingUser, setPendingUser] = useState(null);
+  const [resendMessage, setResendMessage] = useState('');
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -18,7 +21,6 @@ function Login() {
     setErrorMsg('');
     setIsLoading(true);
 
-    // Basic validation
     if (!email || !password) {
       setErrorMsg('Please fill in all fields.');
       setIsLoading(false);
@@ -33,63 +35,41 @@ function Login() {
     }
 
     try {
-      // Step 1: Firebase sign-in
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Step 2: Email verification
       if (!user.emailVerified) {
-        setErrorMsg('Please verify your email before logging in. Check your inbox for the verification link.');
+        await auth.signOut();
+        setPendingUser(user);
+        setShowVerificationModal(true);
         setIsLoading(false);
         return;
       }
 
+      localStorage.setItem('email', user.email);
+      localStorage.setItem('uid', user.uid);
 
-        // Optionally store Firebase info
-        localStorage.setItem('email', user.email);
-        localStorage.setItem('uid', user.uid);
+      const res = await fetch(`http://localhost:5000/userinfo?email=${encodeURIComponent(user.email)}`);
+      if (!res.ok) throw new Error(`Backend responded with status ${res.status}`);
 
+      const data = await res.json();
+      if (!data || !data.first_name || !data.last_name || !data.user_id) {
+        throw new Error('Incomplete user profile data returned from backend.');
+      }
 
-
-        // Replace the userinfo fetch block in your try block with this updated version:
-
-    try {
-        const res = await fetch(`https://dsa-algorithm-manager.onrender.com/userinfo?email=${encodeURIComponent(user.email)}`);
-
-        if (!res.ok) {
-            throw new Error(`Backend responded with status ${res.status}`);
-        }
-
-        const data = await res.json();
-
-        if (!data || !data.first_name || !data.last_name || !data.user_id) {
-            throw new Error('Incomplete user profile data returned from backend.');
-        }
-
-        localStorage.setItem('first_name', data.first_name);
-        localStorage.setItem('last_name', data.last_name);
-        localStorage.setItem('user_id', data.user_id);
-    } catch (err) {
-        console.error('Failed to fetch user data:', err);
-        setErrorMsg('Could not load your user data. Please try again later.');
-        setIsLoading(false);
-        return;
-    }
-
-
-
-
-
+      localStorage.setItem('first_name', data.first_name);
+      localStorage.setItem('last_name', data.last_name);
+      localStorage.setItem('user_id', data.user_id);
+      window.dispatchEvent(new Event('first_name_updated'));
 
       setIsSuccess(true);
       setTimeout(() => {
-      navigate('/home');
-    }, 2000);
+        navigate('/home');
+      }, 2000);
 
     } catch (error) {
       console.error('Login error:', error);
-      
-      // Enhanced Firebase-specific error messages
+
       switch (error.code) {
         case 'auth/user-not-found':
           setErrorMsg('No account found with this email address. Please check your email or register for a new account.');
@@ -116,7 +96,7 @@ function Login() {
           setErrorMsg('An unexpected error occurred. Please try again later.');
       }
     }
-    
+
     setIsLoading(false);
   };
 
@@ -159,7 +139,6 @@ function Login() {
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
-            {/* Email Field */}
             <div className="space-y-2">
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -176,7 +155,6 @@ function Login() {
               </div>
             </div>
 
-            {/* Password Field */}
             <div className="space-y-2">
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -201,7 +179,6 @@ function Login() {
               </div>
             </div>
 
-            {/* Forgot Password Link */}
             <div className="text-right">
               <Link 
                 to="/forgot-password" 
@@ -211,7 +188,6 @@ function Login() {
               </Link>
             </div>
 
-            {/* Error Message */}
             {errorMsg && (
               <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 animate-fade-in">
                 <p className="text-red-400 text-sm flex items-center gap-2">
@@ -221,7 +197,6 @@ function Login() {
               </div>
             )}
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={isLoading}
@@ -241,7 +216,6 @@ function Login() {
             </button>
           </form>
 
-          {/* Sign Up Link */}
           <div className="text-center mt-6">
             <p className="text-gray-300">
               Don't have an account?{' '}
@@ -256,45 +230,52 @@ function Login() {
         </div>
       </div>
 
+      {/* Email Verification Modal */}
+      {showVerificationModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm text-center">
+            <h3 className="text-lg font-bold text-red-600 mb-2">Email Not Verified</h3>
+            <p className="text-gray-700 mb-4">First confirm your email. Please check your inbox and click the verification link before logging in.</p>
+            {resendMessage && <p className="text-green-600 text-sm mb-2">{resendMessage}</p>}
+            <div className="flex flex-col gap-3">
+              <button
+                className="bg-purple-600 text-white py-2 rounded hover:bg-purple-700 transition"
+                onClick={async () => {
+                  if (pendingUser) {
+                    await pendingUser.reload();
+                    if (pendingUser.emailVerified) {
+                      setShowVerificationModal(false);
+                      setErrorMsg('');
+                    } else {
+                      await pendingUser.sendEmailVerification();
+                      setResendMessage('Verification email resent.');
+                    }
+                  }
+                }}
+              >
+                Resend Verification Email
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style jsx>{`
         @keyframes blob {
-          0%, 100% {
-            transform: translate(0px, 0px) scale(1);
-          }
-          33% {
-            transform: translate(30px, -50px) scale(1.1);
-          }
-          66% {
-            transform: translate(-20px, 20px) scale(0.9);
-          }
+          0%, 100% { transform: translate(0px, 0px) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
         }
-        
+
         @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
         }
-        
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        
-        .animate-fade-in {
-          animation: fade-in 0.3s ease-out;
-        }
-        
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
+
+        .animate-blob { animation: blob 7s infinite; }
+        .animate-fade-in { animation: fade-in 0.3s ease-out; }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
       `}</style>
     </div>
   );
