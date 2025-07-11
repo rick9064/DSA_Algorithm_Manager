@@ -174,6 +174,7 @@ function Signup() {
     }
   };
     return (
+      <>
       <div className="fixed inset-0 w-full h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4 overflow-hidden">
         {/* Animated Background Elements for success screen */}
         <div className="absolute inset-0 overflow-hidden">
@@ -461,6 +462,7 @@ function Signup() {
         }
       `}</style>
     </div>
+                  </>
   );
 }
 
