@@ -20,15 +20,36 @@ load_dotenv()
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=[
+    "http://localhost:3000",
+    "https://dsa-algorithm-manager-frontend.onrender.com",
+    "https://dsa-algorithm-manager.onrender.com"
+], supports_credentials=True, allow_headers="*", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 app.secret_key = os.getenv("SECRET_KEY", "fallback_secret")
 app.config['UPLOAD_FOLDER'] = 'uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 logging.basicConfig(level=logging.DEBUG)
 
+# Remove or comment out the after_request CORS header if present
+# @app.after_request
+# def add_cors_headers(response):
+#     response.headers.add('Access-Control-Allow-Origin', '*')
+#     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+#     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+#     return response
+
+# Explicit OPTIONS handler for /firebase-signup
+@app.route('/firebase-signup', methods=['OPTIONS'])
+def firebase_signup_options():
+    return '', 204
+
 # Firebase initialization
 if not firebase_admin._apps:
-    cred = credentials.Certificate("serviceAccount.json")
+    service_account_json = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS_JSON')
+    if service_account_json:
+        cred = credentials.Certificate(json.loads(service_account_json))
+    else:
+        cred = credentials.Certificate("serviceAccount.json")
     firebase_admin.initialize_app(cred)
 
 
@@ -164,6 +185,50 @@ def upload_profile_photo():
 @app.route('/uploads/<filename>')
 def serve_uploaded_image(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+# --- Algorithm Endpoints ---
+@app.route('/create-tree', methods=['POST'])
+def create_tree():
+    try:
+        data = request.get_json()
+        values = data.get('values', [])
+        if not isinstance(values, list) or not values:
+            return jsonify({'error': 'Invalid or missing values'}), 400
+
+        tree = BinaryTree()
+        for v in values:
+            tree.insert(v)
+
+        inorder = []
+        preorder = []
+        postorder = []
+        tree.inorder(tree.root, inorder)
+        tree.preorder(tree.root, preorder)
+        tree.postorder(tree.root, postorder)
+
+        return jsonify({
+            'inorder': inorder,
+            'preorder': preorder,
+            'postorder': postorder
+        }), 200
+    except Exception as e:
+        app.logger.error("Binary tree error:\n%s", traceback.format_exc())
+        return jsonify({'error': 'Failed to process binary tree'}), 500
+
+@app.route('/search', methods=['POST'])
+def search_endpoint():
+    try:
+        data = request.get_json()
+        array = data.get('array', [])
+        target = data.get('target')
+        if not isinstance(array, list) or target is None:
+            return jsonify({'error': 'Invalid input'}), 400
+
+        found_at = search(array, target)
+        return jsonify({'found_at': found_at}), 200
+    except Exception as e:
+        app.logger.error("Search error:\n%s", traceback.format_exc())
+        return jsonify({'error': 'Failed to process search'}), 500
 
 # Placeholder routes for algorithms
 # (Include your search, sort, queue, binary tree routes here)
