@@ -45,11 +45,7 @@ def firebase_signup_options():
 
 # Firebase initialization
 if not firebase_admin._apps:
-    service_account_json = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS_JSON')
-    if service_account_json:
-        cred = credentials.Certificate(json.loads(service_account_json))
-    else:
-        cred = credentials.Certificate("serviceAccount.json")
+    cred = credentials.Certificate("serviceAccount.json")
     firebase_admin.initialize_app(cred)
 
 
