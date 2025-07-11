@@ -8,8 +8,9 @@ function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [firstName, setFirstName] = useState(localStorage.getItem('first_name') || 'User');
-  const [profilePhoto, setProfilePhoto] = useState(localStorage.getItem('profile_photo') || 'https://i.pravatar.cc/40?u=r');
+  const email = localStorage.getItem('email');
+  const [firstName, setFirstName] = useState(email ? localStorage.getItem(`first_name_${email}`) : 'User');
+  const [profilePhoto, setProfilePhoto] = useState(email ? localStorage.getItem(`profile_photo_${email}`) : 'https://i.pravatar.cc/40?u=r');
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
@@ -24,8 +25,9 @@ function Navbar() {
   // Update name/photo when events fire
   useEffect(() => {
     const updateProfile = () => {
-      setFirstName(localStorage.getItem('first_name') || 'User');
-      setProfilePhoto(localStorage.getItem('profile_photo') || 'https://i.pravatar.cc/40?u=r');
+      const email = localStorage.getItem('email');
+      setFirstName(email ? localStorage.getItem(`first_name_${email}`) : 'User');
+      setProfilePhoto(email ? localStorage.getItem(`profile_photo_${email}`) : 'https://i.pravatar.cc/40?u=r');
     };
 
     window.addEventListener('first_name_updated', updateProfile);
