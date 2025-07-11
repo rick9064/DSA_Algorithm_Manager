@@ -23,6 +23,7 @@ app = Flask(__name__)
 CORS(app, origins=[
     "http://localhost:3000",
     "https://dsa-algorithm-manager.vercel.app",
+    "https://dsa-algorithm-manager-frontend.onrender.com",
     "https://dsa-algorithm-manager.onrender.com"
 ], supports_credentials=True, allow_headers="*", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
