@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from './firebase';
+import API_BASE_URL from '../config';
 import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader, LogIn, CheckCircle } from 'lucide-react';
 
 function Login() {
@@ -37,7 +38,7 @@ function Login() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
+      await user.reload(); // Ensure latest verification status
       if (!user.emailVerified) {
         await auth.signOut();
         setPendingUser(user);
@@ -49,7 +50,7 @@ function Login() {
       localStorage.setItem('email', user.email);
       localStorage.setItem('uid', user.uid);
 
-      const res = await fetch(`http://localhost:5000/userinfo?email=${encodeURIComponent(user.email)}`);
+      const res = await fetch(`${API_BASE_URL}/userinfo?email=${encodeURIComponent(user.email)}`);
       if (!res.ok) throw new Error(`Backend responded with status ${res.status}`);
 
       const data = await res.json();
@@ -57,6 +58,10 @@ function Login() {
         throw new Error('Incomplete user profile data returned from backend.');
       }
 
+      // Store user-specific keys
+      localStorage.setItem(`first_name_${user.email}`, data.first_name);
+      localStorage.setItem(`last_name_${user.email}`, data.last_name);
+      // Also set generic keys for Navbar initial load
       localStorage.setItem('first_name', data.first_name);
       localStorage.setItem('last_name', data.last_name);
       localStorage.setItem('user_id', data.user_id);
@@ -109,11 +114,14 @@ function Login() {
           </div>
           <h2 className="text-2xl font-bold text-white mb-4">Welcome Back!</h2>
           <p className="text-gray-200 mb-4">
-            Login successful. Redirecting to your dashboard...
+            Login successful. You can now access your dashboard.
           </p>
-          <div className="animate-pulse text-purple-300">
-            Taking you to your account...
-          </div>
+          <button
+            className="mt-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 mx-auto disabled:opacity-60"
+            onClick={() => navigate('/home')}
+          >
+            Continue to Dashboard
+          </button>
         </div>
       </div>
     );
@@ -241,15 +249,20 @@ function Login() {
               <button
                 className="bg-purple-600 text-white py-2 rounded hover:bg-purple-700 transition"
                 onClick={async () => {
-                  if (pendingUser) {
-                    await pendingUser.reload();
-                    if (pendingUser.emailVerified) {
+                  try {
+                    // Re-authenticate to get a fresh user object
+                    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                    await userCredential.user.reload();
+                    if (userCredential.user.emailVerified) {
                       setShowVerificationModal(false);
                       setErrorMsg('');
                     } else {
-                      await pendingUser.sendEmailVerification();
+                      await userCredential.user.sendEmailVerification();
                       setResendMessage('Verification email resent.');
+                      await auth.signOut();
                     }
+                  } catch (err) {
+                    setErrorMsg('Could not verify email. Please try again or log in after verifying.');
                   }
                 }}
               >
