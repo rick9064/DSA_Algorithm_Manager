@@ -45,8 +45,20 @@ def firebase_signup_options():
 
 # Firebase initialization
 if not firebase_admin._apps:
-    cred = credentials.Certificate("serviceAccount.json")
+    google_creds_json = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+
+    if not google_creds_json:
+        raise ValueError("GOOGLE_APPLICATION_CREDENTIALS_JSON env variable not set.")
+
+    import tempfile
+    with tempfile.NamedTemporaryFile(mode="w+", delete=False) as f:
+        f.write(google_creds_json)
+        service_account_path = f.name
+
+    cred = credentials.Certificate(service_account_path)
     firebase_admin.initialize_app(cred)
+
+
 
 
 # MongoDB connection
