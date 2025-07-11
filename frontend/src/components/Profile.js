@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
+import API_BASE_URL from '../config';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer
 } from 'recharts';
@@ -18,10 +19,10 @@ const dummyProgress = [
 
 const Profile = () => {
   const email = localStorage.getItem('email');
-  const storedName = localStorage.getItem('first_name') || 'User';
-  const storedPhoto = localStorage.getItem('profile_photo');
+  const storedName = email ? localStorage.getItem(`first_name_${email}`) : null;
+  const storedPhoto = email ? localStorage.getItem(`profile_photo_${email}`) : null;
 
-  const [firstName, setFirstName] = useState(storedName);
+  const [firstName, setFirstName] = useState(storedName || 'User');
   const [tagline, setTagline] = useState('Aspiring DSA Master 🌟');
   const [profilePhoto, setProfilePhoto] = useState(storedPhoto || 'https://i.pravatar.cc/100?u=r');
   
@@ -37,14 +38,14 @@ const Profile = () => {
     const fetchUserInfo = async () => {
       if (!email) return;
       try {
-        const res = await axios.get(`http://localhost:5000/userinfo?email=${email}`);
+        const res = await axios.get(`${API_BASE_URL}/userinfo?email=${email}`);
         const data = res.data;
         setFirstName(data.first_name);
         setProfilePhoto(data.profile_photo);
         setTempName(data.first_name);
         setTempPhoto(data.profile_photo);
-        localStorage.setItem('first_name', data.first_name);
-        localStorage.setItem('profile_photo', data.profile_photo);
+        localStorage.setItem(`first_name_${email}`, data.first_name);
+        localStorage.setItem(`profile_photo_${email}`, data.profile_photo);
         window.dispatchEvent(new Event('profile_photo_updated'));
       } catch (err) {
         console.error('Failed to fetch user info:', err);
@@ -56,7 +57,7 @@ const Profile = () => {
   const handleSave = async () => {
     try {
       // Save name
-      localStorage.setItem('first_name', tempName);
+      localStorage.setItem(`first_name_${email}`, tempName);
       setFirstName(tempName);
       window.dispatchEvent(new Event('first_name_updated'));
 
@@ -66,7 +67,7 @@ const Profile = () => {
       // Save photo if changed
       if (tempPhoto !== profilePhoto) {
         setProfilePhoto(tempPhoto);
-        localStorage.setItem('profile_photo', tempPhoto);
+        localStorage.setItem(`profile_photo_${email}`, tempPhoto);
         window.dispatchEvent(new Event('profile_photo_updated'));
       }
 
@@ -92,7 +93,7 @@ const Profile = () => {
     formData.append('email', email);
 
     try {
-      const res = await axios.post('http://localhost:5000/upload-profile-photo', formData, {
+      const res = await axios.post(`${API_BASE_URL}/upload-profile-photo`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       if (res.data.status === 'success') {
