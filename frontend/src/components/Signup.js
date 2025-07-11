@@ -148,16 +148,28 @@ function Signup() {
     await auth.signOut();
 
     // Send data to your backend for MongoDB storage
-    await fetch('https://dsa-algorithm-manager.onrender.com/firebase-signup', {
+    const response = await fetch('https://dsa-algorithm-manager.onrender.com/firebase-signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         first_name: formData.firstName,
         last_name: formData.lastName,
         email: formData.email,
+        uid: user.uid,
         password: formData.password, // Optional: hash in backend
       }),
     });
+
+    if (!response.ok) {
+      let errorMsg = 'Signup failed. Please try again.';
+      try {
+        const errorData = await response.json();
+        if (errorData && errorData.message) errorMsg = errorData.message;
+      } catch (e) {
+        // Ignore JSON parse errors
+      }
+      throw new Error(errorMsg);
+    }
 
     // Show success screen
     setIsSuccess(true);
@@ -212,7 +224,8 @@ function Signup() {
           </div>
           <h2 className="text-3xl font-bold text-white mb-4">Account Created Successfully!</h2>
           <p className="text-gray-200 mb-6 text-lg">
-            Verification email sent successfully. Please check your email to verify your account before logging in.
+            Verification email sent successfully. Please check your email to verify your account before logging in.<br/>
+            <span className="text-yellow-300 font-semibold">If you don't see the email, check your spam or junk folder and mark it as 'Not Spam'.</span>
           </p>
           <button
             className="mt-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 mx-auto disabled:opacity-60"
