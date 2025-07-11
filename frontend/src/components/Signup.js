@@ -4,8 +4,6 @@ import { Link } from 'react-router-dom';
 import { auth } from './firebase';
 import { createUserWithEmailAndPassword, sendEmailVerification, signInWithEmailAndPassword } from 'firebase/auth';
 
-
-
 function Signup() {
   const [formData, setFormData] = useState({
     firstName: '',
@@ -23,8 +21,7 @@ function Signup() {
   const [verifyError, setVerifyError] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
 
-  // Password strength calculator
-    const calculatePasswordStrength = (password) => {
+  const calculatePasswordStrength = (password) => {
     let strength = 0;
     if (password.length >= 8) strength += 25;
     if (/[a-z]/.test(password)) strength += 25;
@@ -33,74 +30,77 @@ function Signup() {
     return strength;
   };
 
-  // Real-time validation
   const validateField = (name, value) => {
     const newErrors = { ...errors };
-
     switch (name) {
       case 'firstName':
-        if (!value.trim()) {
-          newErrors.firstName = 'First name is required';
-        } else if (value.trim().length < 2) {
-          newErrors.firstName = 'First name must be at least 2 characters';
-        } else if (!/^[a-zA-Z\s]+$/.test(value)) {
-          newErrors.firstName = 'First name can only contain letters';
-        } else {
-          delete newErrors.firstName;
-        }
+        if (!value.trim()) newErrors.firstName = 'First name is required';
+        else if (value.trim().length < 2) newErrors.firstName = 'First name must be at least 2 characters';
+        else if (!/^[a-zA-Z\s]+$/.test(value)) newErrors.firstName = 'First name can only contain letters';
+        else delete newErrors.firstName;
         break;
-
       case 'lastName':
-        if (!value.trim()) {
-          newErrors.lastName = 'Last name is required';
-        } else if (value.trim().length < 2) {
-          newErrors.lastName = 'Last name must be at least 2 characters';
-        } else if (!/^[a-zA-Z\s]+$/.test(value)) {
-          newErrors.lastName = 'Last name can only contain letters';
-        } else {
-          delete newErrors.lastName;
-        }
+        if (!value.trim()) newErrors.lastName = 'Last name is required';
+        else if (value.trim().length < 2) newErrors.lastName = 'Last name must be at least 2 characters';
+        else if (!/^[a-zA-Z\s]+$/.test(value)) newErrors.lastName = 'Last name can only contain letters';
+        else delete newErrors.lastName;
         break;
-
       case 'email':
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!value) {
-          newErrors.email = 'Email is required';
-        } else if (!emailRegex.test(value)) {
-          newErrors.email = 'Please enter a valid email address';
-        } else {
-          delete newErrors.email;
-        }
+        if (!value) newErrors.email = 'Email is required';
+        else if (!emailRegex.test(value)) newErrors.email = 'Please enter a valid email address';
+        else delete newErrors.email;
         break;
-
       case 'password':
-        if (!value) {
-          newErrors.password = 'Password is required';
-        } else if (value.length < 8) {
-          newErrors.password = 'Password must be at least 8 characters';
-        } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) {
+        if (!value) newErrors.password = 'Password is required';
+        else if (value.length < 8) newErrors.password = 'Password must be at least 8 characters';
+        else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) {
           newErrors.password = 'Password must contain uppercase, lowercase, and number';
-        } else {
-          delete newErrors.password;
-        }
+        } else delete newErrors.password;
         setPasswordStrength(calculatePasswordStrength(value));
         break;
-
       case 'confirmPassword':
-        if (!value) {
-          newErrors.confirmPassword = 'Please confirm your password';
-        } else if (value !== formData.password) {
-          newErrors.confirmPassword = 'Passwords do not match';
-        } else {
-          delete newErrors.confirmPassword;
-        }
-        break;
-
-      default:
+        if (!value) newErrors.confirmPassword = 'Please confirm your password';
+        else if (value !== formData.password) newErrors.confirmPassword = 'Passwords do not match';
+        else delete newErrors.confirmPassword;
         break;
     }
-
     setErrors(newErrors);
+  };
+
+  const validateAllFields = () => {
+    const newErrors = {};
+    Object.entries(formData).forEach(([key, value]) => {
+      switch (key) {
+        case 'firstName':
+          if (!value.trim()) newErrors.firstName = 'First name is required';
+          else if (value.trim().length < 2) newErrors.firstName = 'First name must be at least 2 characters';
+          else if (!/^[a-zA-Z\s]+$/.test(value)) newErrors.firstName = 'First name can only contain letters';
+          break;
+        case 'lastName':
+          if (!value.trim()) newErrors.lastName = 'Last name is required';
+          else if (value.trim().length < 2) newErrors.lastName = 'Last name must be at least 2 characters';
+          else if (!/^[a-zA-Z\s]+$/.test(value)) newErrors.lastName = 'Last name can only contain letters';
+          break;
+        case 'email':
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!value) newErrors.email = 'Email is required';
+          else if (!emailRegex.test(value)) newErrors.email = 'Please enter a valid email address';
+          break;
+        case 'password':
+          if (!value) newErrors.password = 'Password is required';
+          else if (value.length < 8) newErrors.password = 'Password must be at least 8 characters';
+          else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) {
+            newErrors.password = 'Password must contain uppercase, lowercase, and number';
+          }
+          break;
+        case 'confirmPassword':
+          if (!value) newErrors.confirmPassword = 'Please confirm your password';
+          else if (value !== formData.password) newErrors.confirmPassword = 'Passwords do not match';
+          break;
+      }
+    });
+    return newErrors;
   };
 
   const handleInputChange = (e) => {
@@ -124,91 +124,71 @@ function Signup() {
   };
 
   const handleSignup = async () => {
-  // Validate all fields
-  Object.keys(formData).forEach(key => {
-    validateField(key, formData[key]);
-  });
+    const newErrors = validateAllFields();
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
 
-  // Check if there are any errors after validation
-  if (Object.keys(errors).length > 0) {
-    return;
-  }
+    setIsLoading(true);
 
-  setIsLoading(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      const user = userCredential.user;
+      await sendEmailVerification(user);
+      await auth.signOut();
 
-  try {
-    // Create Firebase user
-    const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-    const user = userCredential.user;
+      const response = await fetch('https://dsa-algorithm-manager.onrender.com/firebase-signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          uid: user.uid,
+          password: formData.password,
+        }),
+      });
 
-    // Send email verification
-    await sendEmailVerification(user);
-
-    // 🔒 Immediately sign out the user
-    await auth.signOut();
-
-    // Send data to your backend for MongoDB storage
-    const response = await fetch('https://dsa-algorithm-manager.onrender.com/firebase-signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        email: formData.email,
-        uid: user.uid,
-        password: formData.password, // Optional: hash in backend
-      }),
-    });
-
-    if (!response.ok) {
-      let errorMsg = 'Signup failed. Please try again.';
-      try {
-        const errorData = await response.json();
-        if (errorData && errorData.message) errorMsg = errorData.message;
-      } catch (e) {
-        // Ignore JSON parse errors
+      if (!response.ok) {
+        let errorMsg = 'Signup failed. Please try again.';
+        try {
+          const errorData = await response.json();
+          if (errorData && errorData.message) errorMsg = errorData.message;
+        } catch (e) {}
+        throw new Error(errorMsg);
       }
-      throw new Error(errorMsg);
+
+      setIsSuccess(true);
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 2000);
+
+    } catch (error) {
+      console.error('Signup error:', error);
+      setErrors({ submit: error.message || 'Signup failed. Please try again.' });
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    // Show success screen
-    setIsSuccess(true);
-
-    // Redirect after 2s
-    setTimeout(() => {
-      window.location.href = '/login'; // Or use navigate('/login') if using useNavigate
-    }, 2000);
-
-  } catch (error) {
-    console.error('Signup error:', error);
-    setErrors({ submit: error.message || 'Signup failed. Please try again.' });
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-
-  if (isSuccess) {
-    const handleCheckVerification = async () => {
-      setIsVerifying(true);
-      setVerifyError("");
-      try {
-        // Use signInWithEmailAndPassword to check verification
-        const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
-        await userCredential.user.reload();
-        if (userCredential.user.emailVerified) {
-          await auth.signOut();
-          window.location.href = '/login';
-        } else {
-          setVerifyError("Email not verified yet. Please check your inbox and click the verification link.");
-          await auth.signOut();
-        }
-      } catch (err) {
-        setVerifyError("Could not verify email. Please try again or log in after verifying.");
-      } finally {
-        setIsVerifying(false);
+  const handleCheckVerification = async () => {
+    setIsVerifying(true);
+    setVerifyError("");
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      await userCredential.user.reload();
+      if (userCredential.user.emailVerified) {
+        await auth.signOut();
+        window.location.href = '/login';
+      } else {
+        setVerifyError("Email not verified yet. Please check your inbox and click the verification link.");
+        await auth.signOut();
       }
-    };
+    } catch (err) {
+      setVerifyError("Could not verify email. Please try again or log in after verifying.");
+    } finally {
+      setIsVerifying(false);
+    }
+  };
     return (
       <div className="fixed inset-0 w-full h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4 overflow-hidden">
         {/* Animated Background Elements for success screen */}
