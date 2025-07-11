@@ -50,9 +50,14 @@ if not firebase_admin._apps:
     if not google_creds_json:
         raise ValueError("GOOGLE_APPLICATION_CREDENTIALS_JSON env variable not set.")
 
+    # Convert string to dictionary and fix newline characters in private_key
+    creds_dict = json.loads(google_creds_json)
+    creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+
+    # Write to temporary file
     import tempfile
     with tempfile.NamedTemporaryFile(mode="w+", delete=False) as f:
-        f.write(google_creds_json)
+        json.dump(creds_dict, f)
         service_account_path = f.name
 
     cred = credentials.Certificate(service_account_path)
