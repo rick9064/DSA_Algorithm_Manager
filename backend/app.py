@@ -2,6 +2,7 @@ import os
 import logging
 import json
 import traceback
+import tempfile
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from pymongo import MongoClient
@@ -15,47 +16,30 @@ from algorithms.sort import sort
 from algorithms.queue import Queue
 from algorithms.binarytree import BinaryTree
 
-# Load env variables
+# Load environment variables
 load_dotenv()
 
-# Initialize Flask app
 app = Flask(__name__)
 CORS(app, origins=[
     "http://localhost:3000",
-    "https://dsa-algorithm-manager-frontend.onrender.com",
+    "https://dsa-algorithm-manager.vercel.app",
     "https://dsa-algorithm-manager.onrender.com"
 ], supports_credentials=True, allow_headers="*", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+
 app.secret_key = os.getenv("SECRET_KEY", "fallback_secret")
 app.config['UPLOAD_FOLDER'] = 'uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 logging.basicConfig(level=logging.DEBUG)
 
-# Remove or comment out the after_request CORS header if present
-# @app.after_request
-# def add_cors_headers(response):
-#     response.headers.add('Access-Control-Allow-Origin', '*')
-#     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-#     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-#     return response
-
-# Explicit OPTIONS handler for /firebase-signup
-@app.route('/firebase-signup', methods=['OPTIONS'])
-def firebase_signup_options():
-    return '', 204
-
-# Firebase initialization
+# Firebase Admin Initialization
 if not firebase_admin._apps:
-    google_creds_json = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+    creds_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+    if not creds_json:
+        raise ValueError("GOOGLE_APPLICATION_CREDENTIALS_JSON not set in environment variables.")
 
-    if not google_creds_json:
-        raise ValueError("GOOGLE_APPLICATION_CREDENTIALS_JSON env variable not set.")
-
-    # Convert string to dictionary and fix newline characters in private_key
-    creds_dict = json.loads(google_creds_json)
+    creds_dict = json.loads(creds_json)
     creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
 
-    # Write to temporary file
-    import tempfile
     with tempfile.NamedTemporaryFile(mode="w+", delete=False) as f:
         json.dump(creds_dict, f)
         service_account_path = f.name
@@ -63,10 +47,7 @@ if not firebase_admin._apps:
     cred = credentials.Certificate(service_account_path)
     firebase_admin.initialize_app(cred)
 
-
-
-
-# MongoDB connection
+# MongoDB Connection
 try:
     mongo_uri = os.getenv("MONGO_URI")
     if not mongo_uri:
@@ -80,12 +61,14 @@ except Exception as e:
     print(f"❌ MongoDB connection error: {e}")
     users_collection = None
 
-# Queue instance
 queue_instance = Queue()
 
 # Firebase Signup Route
-@app.route('/firebase-signup', methods=['POST'])
+@app.route('/firebase-signup', methods=['POST', 'OPTIONS'])
 def firebase_signup():
+    if request.method == 'OPTIONS':
+        return '', 204
+
     if users_collection is None:
         return jsonify({'message': 'Database not connected'}), 500
 
@@ -108,13 +91,14 @@ def firebase_signup():
             'email': email,
             'uid': uid
         })
+
         return jsonify({'message': 'User data saved successfully'}), 201
 
     except Exception as e:
         app.logger.error("Signup error:\n%s", traceback.format_exc())
         return jsonify({'message': 'Signup failed'}), 500
 
-# Firebase Login Route
+# Login Route
 @app.route('/login', methods=['POST'])
 def login():
     if users_collection is None:
@@ -140,7 +124,7 @@ def login():
         print("Login error:", e)
         return jsonify({'message': 'Invalid or expired token'}), 401
 
-# ✅ New: Get User Info by Email
+# Get User Info by Email
 @app.route('/userinfo', methods=['GET'])
 def get_user_info():
     if users_collection is None:
@@ -166,7 +150,7 @@ def get_user_info():
         print("User info error:", e)
         return jsonify({'message': 'Internal server error'}), 500
 
-# ✅ New: Upload profile photo
+# Upload Profile Photo
 @app.route('/upload-profile-photo', methods=['POST'])
 def upload_profile_photo():
     if users_collection is None:
@@ -178,6 +162,7 @@ def upload_profile_photo():
 
         file = request.files['file']
         email = request.form['email']
+
         if file.filename == '':
             return jsonify({'message': 'No selected file'}), 400
 
@@ -185,7 +170,8 @@ def upload_profile_photo():
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(file_path)
 
-        image_url = f"http://localhost:5000/uploads/{filename}"
+        backend_url = os.getenv("BACKEND_BASE_URL", "https://dsa-algorithm-manager.onrender.com")
+        image_url = f"{backend_url}/uploads/{filename}"
 
         users_collection.update_one({'email': email}, {'$set': {'profile_photo': image_url}})
         return jsonify({'status': 'success', 'url': image_url}), 200
@@ -194,7 +180,7 @@ def upload_profile_photo():
         app.logger.error("Photo upload error:\n%s", traceback.format_exc())
         return jsonify({'message': 'Image upload failed'}), 500
 
-# ✅ New: Serve uploaded images
+# Serve Uploaded Images
 @app.route('/uploads/<filename>')
 def serve_uploaded_image(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
@@ -212,9 +198,7 @@ def create_tree():
         for v in values:
             tree.insert(v)
 
-        inorder = []
-        preorder = []
-        postorder = []
+        inorder, preorder, postorder = [], [], []
         tree.inorder(tree.root, inorder)
         tree.preorder(tree.root, preorder)
         tree.postorder(tree.root, postorder)
@@ -242,9 +226,6 @@ def search_endpoint():
     except Exception as e:
         app.logger.error("Search error:\n%s", traceback.format_exc())
         return jsonify({'error': 'Failed to process search'}), 500
-
-# Placeholder routes for algorithms
-# (Include your search, sort, queue, binary tree routes here)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
