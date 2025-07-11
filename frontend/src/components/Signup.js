@@ -109,27 +109,12 @@ function Signup() {
     validateField(name, value);
   };
 
-  const getPasswordStrengthColor = () => {
-    if (passwordStrength < 25) return 'bg-red-500';
-    if (passwordStrength < 50) return 'bg-orange-500';
-    if (passwordStrength < 75) return 'bg-yellow-500';
-    return 'bg-green-500';
-  };
-
-  const getPasswordStrengthText = () => {
-    if (passwordStrength < 25) return 'Weak';
-    if (passwordStrength < 50) return 'Fair';
-    if (passwordStrength < 75) return 'Good';
-    return 'Strong';
-  };
-
   const handleSignup = async () => {
     const newErrors = validateAllFields();
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
     setIsLoading(true);
-
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
@@ -161,7 +146,6 @@ function Signup() {
       setTimeout(() => {
         window.location.href = '/login';
       }, 2000);
-
     } catch (error) {
       console.error('Signup error:', error);
       setErrors({ submit: error.message || 'Signup failed. Please try again.' });
