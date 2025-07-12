@@ -30,6 +30,18 @@ function Signup() {
     return strength;
   };
 
+  const getPasswordStrengthText = () => {
+    if (passwordStrength >= 75) return 'Strong';
+    if (passwordStrength >= 50) return 'Medium';
+    return 'Weak';
+  };
+
+  const getPasswordStrengthColor = () => {
+    if (passwordStrength >= 75) return 'bg-green-500';
+    if (passwordStrength >= 50) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
   const validateField = (name, value) => {
     const newErrors = { ...errors };
     switch (name) {
@@ -173,23 +185,24 @@ function Signup() {
       setIsVerifying(false);
     }
   };
+
+  if (isSuccess) {
     return (
-      <>
       <div className="fixed inset-0 w-full h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4 overflow-hidden">
-        {/* Animated Background Elements for success screen */}
+        {/* Success screen JSX (unchanged) */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-green-500 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob transform translate-x-32 -translate-y-32"></div>
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000 transform -translate-x-32 translate-y-32"></div>
           <div className="absolute top-1/3 left-1/4 w-64 h-64 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000"></div>
         </div>
-        
+
         <div className="relative z-10 bg-white/10 backdrop-blur-lg rounded-2xl p-8 text-center animate-fade-in">
           <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce shadow-lg shadow-green-500/30">
             <CheckCircle className="w-12 h-12 text-white" />
           </div>
           <h2 className="text-3xl font-bold text-white mb-4">Account Created Successfully!</h2>
           <p className="text-gray-200 mb-6 text-lg">
-            Verification email sent successfully. Please check your email to verify your account before logging in.<br/>
+            Verification email sent successfully. Please check your email to verify your account before logging in.<br />
             <span className="text-yellow-300 font-semibold">If you don't see the email, check your spam or junk folder and mark it as 'Not Spam'.</span>
           </p>
           <button
