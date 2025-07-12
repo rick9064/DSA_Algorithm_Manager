@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, User, Mail, Lock, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { auth } from './firebase';
-import { createUserWithEmailAndPassword, sendEmailVerification, signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+
+
 
 function Signup() {
   const [formData, setFormData] = useState({
@@ -18,10 +20,9 @@ function Signup() {
   const [isLoading, setIsLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [verifyError, setVerifyError] = useState("");
-  const [isVerifying, setIsVerifying] = useState(false);
 
-  const calculatePasswordStrength = (password) => {
+  // Password strength calculator
+    const calculatePasswordStrength = (password) => {
     let strength = 0;
     if (password.length >= 8) strength += 25;
     if (/[a-z]/.test(password)) strength += 25;
@@ -30,89 +31,74 @@ function Signup() {
     return strength;
   };
 
-  const getPasswordStrengthText = () => {
-    if (passwordStrength >= 75) return 'Strong';
-    if (passwordStrength >= 50) return 'Medium';
-    return 'Weak';
-  };
-
-  const getPasswordStrengthColor = () => {
-    if (passwordStrength >= 75) return 'bg-green-500';
-    if (passwordStrength >= 50) return 'bg-yellow-500';
-    return 'bg-red-500';
-  };
-
+  // Real-time validation
   const validateField = (name, value) => {
     const newErrors = { ...errors };
+
     switch (name) {
       case 'firstName':
-        if (!value.trim()) newErrors.firstName = 'First name is required';
-        else if (value.trim().length < 2) newErrors.firstName = 'First name must be at least 2 characters';
-        else if (!/^[a-zA-Z\s]+$/.test(value)) newErrors.firstName = 'First name can only contain letters';
-        else delete newErrors.firstName;
+        if (!value.trim()) {
+          newErrors.firstName = 'First name is required';
+        } else if (value.trim().length < 2) {
+          newErrors.firstName = 'First name must be at least 2 characters';
+        } else if (!/^[a-zA-Z\s]+$/.test(value)) {
+          newErrors.firstName = 'First name can only contain letters';
+        } else {
+          delete newErrors.firstName;
+        }
         break;
+
       case 'lastName':
-        if (!value.trim()) newErrors.lastName = 'Last name is required';
-        else if (value.trim().length < 2) newErrors.lastName = 'Last name must be at least 2 characters';
-        else if (!/^[a-zA-Z\s]+$/.test(value)) newErrors.lastName = 'Last name can only contain letters';
-        else delete newErrors.lastName;
+        if (!value.trim()) {
+          newErrors.lastName = 'Last name is required';
+        } else if (value.trim().length < 2) {
+          newErrors.lastName = 'Last name must be at least 2 characters';
+        } else if (!/^[a-zA-Z\s]+$/.test(value)) {
+          newErrors.lastName = 'Last name can only contain letters';
+        } else {
+          delete newErrors.lastName;
+        }
         break;
+
       case 'email':
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!value) newErrors.email = 'Email is required';
-        else if (!emailRegex.test(value)) newErrors.email = 'Please enter a valid email address';
-        else delete newErrors.email;
+        if (!value) {
+          newErrors.email = 'Email is required';
+        } else if (!emailRegex.test(value)) {
+          newErrors.email = 'Please enter a valid email address';
+        } else {
+          delete newErrors.email;
+        }
         break;
+
       case 'password':
-        if (!value) newErrors.password = 'Password is required';
-        else if (value.length < 8) newErrors.password = 'Password must be at least 8 characters';
-        else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) {
+        if (!value) {
+          newErrors.password = 'Password is required';
+        } else if (value.length < 8) {
+          newErrors.password = 'Password must be at least 8 characters';
+        } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) {
           newErrors.password = 'Password must contain uppercase, lowercase, and number';
-        } else delete newErrors.password;
+        } else {
+          delete newErrors.password;
+        }
         setPasswordStrength(calculatePasswordStrength(value));
         break;
+
       case 'confirmPassword':
-        if (!value) newErrors.confirmPassword = 'Please confirm your password';
-        else if (value !== formData.password) newErrors.confirmPassword = 'Passwords do not match';
-        else delete newErrors.confirmPassword;
+        if (!value) {
+          newErrors.confirmPassword = 'Please confirm your password';
+        } else if (value !== formData.password) {
+          newErrors.confirmPassword = 'Passwords do not match';
+        } else {
+          delete newErrors.confirmPassword;
+        }
+        break;
+
+      default:
         break;
     }
-    setErrors(newErrors);
-  };
 
-  const validateAllFields = () => {
-    const newErrors = {};
-    Object.entries(formData).forEach(([key, value]) => {
-      switch (key) {
-        case 'firstName':
-          if (!value.trim()) newErrors.firstName = 'First name is required';
-          else if (value.trim().length < 2) newErrors.firstName = 'First name must be at least 2 characters';
-          else if (!/^[a-zA-Z\s]+$/.test(value)) newErrors.firstName = 'First name can only contain letters';
-          break;
-        case 'lastName':
-          if (!value.trim()) newErrors.lastName = 'Last name is required';
-          else if (value.trim().length < 2) newErrors.lastName = 'Last name must be at least 2 characters';
-          else if (!/^[a-zA-Z\s]+$/.test(value)) newErrors.lastName = 'Last name can only contain letters';
-          break;
-        case 'email':
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          if (!value) newErrors.email = 'Email is required';
-          else if (!emailRegex.test(value)) newErrors.email = 'Please enter a valid email address';
-          break;
-        case 'password':
-          if (!value) newErrors.password = 'Password is required';
-          else if (value.length < 8) newErrors.password = 'Password must be at least 8 characters';
-          else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) {
-            newErrors.password = 'Password must contain uppercase, lowercase, and number';
-          }
-          break;
-        case 'confirmPassword':
-          if (!value) newErrors.confirmPassword = 'Please confirm your password';
-          else if (value !== formData.password) newErrors.confirmPassword = 'Passwords do not match';
-          break;
-      }
-    });
-    return newErrors;
+    setErrors(newErrors);
   };
 
   const handleInputChange = (e) => {
@@ -121,105 +107,97 @@ function Signup() {
     validateField(name, value);
   };
 
+  const getPasswordStrengthColor = () => {
+    if (passwordStrength < 25) return 'bg-red-500';
+    if (passwordStrength < 50) return 'bg-orange-500';
+    if (passwordStrength < 75) return 'bg-yellow-500';
+    return 'bg-green-500';
+  };
+
+  const getPasswordStrengthText = () => {
+    if (passwordStrength < 25) return 'Weak';
+    if (passwordStrength < 50) return 'Fair';
+    if (passwordStrength < 75) return 'Good';
+    return 'Strong';
+  };
+
   const handleSignup = async () => {
-    const newErrors = validateAllFields();
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) return;
+  // Validate all fields
+  Object.keys(formData).forEach(key => {
+    validateField(key, formData[key]);
+  });
 
-    setIsLoading(true);
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      const user = userCredential.user;
-      await sendEmailVerification(user);
-      await auth.signOut();
+  // Check if there are any errors after validation
+  if (Object.keys(errors).length > 0) {
+    return;
+  }
 
-      const response = await fetch('https://dsa-algorithm-manager.onrender.com/firebase-signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          email: formData.email,
-          uid: user.uid,
-          password: formData.password,
-        }),
-      });
+  setIsLoading(true);
 
-      if (!response.ok) {
-        let errorMsg = 'Signup failed. Please try again.';
-        try {
-          const errorData = await response.json();
-          if (errorData && errorData.message) errorMsg = errorData.message;
-        } catch (e) {}
-        throw new Error(errorMsg);
-      }
+  try {
+    // Create Firebase user
+    const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+    const user = userCredential.user;
 
-      setIsSuccess(true);
-      setTimeout(() => {
-        window.location.href = '/login';
-      }, 2000);
-    } catch (error) {
-      console.error('Signup error:', error);
-      setErrors({ submit: error.message || 'Signup failed. Please try again.' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    // Send email verification
+    await sendEmailVerification(user);
 
-  const handleCheckVerification = async () => {
-    setIsVerifying(true);
-    setVerifyError("");
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
-      await userCredential.user.reload();
-      if (userCredential.user.emailVerified) {
-        await auth.signOut();
-        window.location.href = '/login';
-      } else {
-        setVerifyError("Email not verified yet. Please check your inbox and click the verification link.");
-        await auth.signOut();
-      }
-    } catch (err) {
-      setVerifyError("Could not verify email. Please try again or log in after verifying.");
-    } finally {
-      setIsVerifying(false);
-    }
-  };
+    // 🔒 Immediately sign out the user
+    await auth.signOut();
+
+    // Send data to your backend for MongoDB storage
+    await fetch('https://dsa-algorithm-manager.onrender.com/firebase-signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+        password: formData.password, // Optional: hash in backend
+      }),
+    });
+
+    // Show success screen
+    setIsSuccess(true);
+
+    // Redirect after 2s
+    setTimeout(() => {
+      window.location.href = '/login'; // Or use navigate('/login') if using useNavigate
+    }, 2000);
+
+  } catch (error) {
+    console.error('Signup error:', error);
+    setErrors({ submit: error.message || 'Signup failed. Please try again.' });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   if (isSuccess) {
     return (
       <div className="fixed inset-0 w-full h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4 overflow-hidden">
-        {/* Success screen JSX (unchanged) */}
+        {/* Animated Background Elements for success screen */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-green-500 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob transform translate-x-32 -translate-y-32"></div>
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000 transform -translate-x-32 translate-y-32"></div>
           <div className="absolute top-1/3 left-1/4 w-64 h-64 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000"></div>
         </div>
-
+        
         <div className="relative z-10 bg-white/10 backdrop-blur-lg rounded-2xl p-8 text-center animate-fade-in">
           <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce shadow-lg shadow-green-500/30">
             <CheckCircle className="w-12 h-12 text-white" />
           </div>
           <h2 className="text-3xl font-bold text-white mb-4">Account Created Successfully!</h2>
           <p className="text-gray-200 mb-6 text-lg">
-            Verification email sent successfully. Please check your email to verify your account before logging in.<br />
-            <span className="text-yellow-300 font-semibold">If you don't see the email, check your spam or junk folder and mark it as 'Not Spam'.</span>
+            Verification email sent successfully. Please check your email to verify your account before logging in.
           </p>
-          <button
-            className="mt-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 mx-auto disabled:opacity-60"
-            onClick={handleCheckVerification}
-            disabled={isVerifying}
-          >
-            {isVerifying ? <><Loader className="w-5 h-5 animate-spin" /> Checking...</> : "I have verified my email"}
-          </button>
-          {verifyError && (
-            <div className="mt-4 bg-red-500/10 border border-red-500/30 rounded-lg p-4 animate-fade-in">
-              <p className="text-red-400 text-sm flex items-center gap-2">
-                <AlertCircle className="w-5 h-5" />
-                {verifyError}
-              </p>
-            </div>
-          )}
+          <div className="flex items-center justify-center gap-2 text-purple-300">
+            <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+            <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse animation-delay-200"></div>
+            <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse animation-delay-400"></div>
+            <span className="ml-2 text-lg">Redirecting to login page...</span>
+          </div>
         </div>
       </div>
     );
