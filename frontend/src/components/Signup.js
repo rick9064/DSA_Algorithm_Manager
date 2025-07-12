@@ -475,7 +475,6 @@ function Signup() {
         }
       `}</style>
     </div>
-                  </>
   );
 }
 
